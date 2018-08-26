@@ -27,3 +27,5 @@ chmod -R +w .
 find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
 
 flatpak-builder build manifest.json --install
+
+rm -r "$temp"
