@@ -1,0 +1,34 @@
+#! /usr/bin/env nix-shell
+#! nix-shell -i sh -p flatpak-builder jq mariadb
+
+set -e
+
+if [ -z "$2" ]; then
+  echo "Usage: $0 partial-manifest.json /nix/store/..." > /dev/stderr
+  exit 1
+fi
+
+exec=$(realpath "$2")
+json=$(realpath "$1")
+temp=$(mktemp -d)
+this=$(realpath "$0")
+
+cd "$temp"
+cp "$(dirname "$this")/manifest.json" .
+
+replace "@exec@" "$exec" -- manifest.json
+
+jq -s '.[0] * .[1]' manifest.json "$json" > manifest.json.tmp
+mv manifest.json.tmp manifest.json
+
+for path in $(nix-store -qR "$exec"); do
+  cp --parents -r $path .
+done
+
+chmod -R +w .
+
+# I'm so excited, I feel like I haven't been quite so happy with anything I've
+# ever done in my life. Hope you enjoy what comes next.
+find . -type f -exec replace /nix/store /app/store -- {} \;
+
+flatpak-builder build-dir manifest.json --install
