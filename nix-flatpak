@@ -22,8 +22,8 @@ done
 
 chmod -R +w .
 
-# I'm so excited, I feel like I haven't been quite so happy with anything I've
-# ever done in my life. Hope you enjoy what comes next.
-find . -type f -exec replace /nix/store /app/store -- {} \;
+# I'm so excited, I feel like I haven't been quite so happy with anything
+# I've ever done in my life. Hope you enjoy what comes next.
+find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
 
 flatpak-builder build-dir manifest.json --install
