@@ -7,5 +7,6 @@ stdenv.mkDerivation {
     flatpak-builder
     jq
     mariadb
+    ostree
   ];
 }
