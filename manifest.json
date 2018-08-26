@@ -2,7 +2,6 @@
     "runtime": "org.freedesktop.BasePlatform",
     "runtime-version": "1.6",
     "sdk": "org.freedesktop.BaseSdk",
-    "command": "@exec@",
     "modules": [
         {
             "name": "nix-flatpak",

@@ -14,8 +14,7 @@ this=$(realpath "$0")
 
 cd "$temp"
 
-jq -s add "$(dirname "$this")/manifest.json" "$json" > manifest.json
-replace "@exec@" "$exec" -- manifest.json
+jq -s add "$(dirname "$this")/manifest.json" "$json" | jq --arg _ "$exec" '.command = $_' > manifest.json
 
 for path in $(nix-store -qR "$exec"); do
   cp --parents -r "$path" .
