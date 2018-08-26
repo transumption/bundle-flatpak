@@ -1,5 +1,4 @@
-#! /usr/bin/env nix-shell
-#! nix-shell -i sh -p flatpak-builder jq mariadb
+#!/bin/sh
 
 set -e
 
@@ -22,7 +21,7 @@ jq -s '.[0] * .[1]' manifest.json "$json" > manifest.json.tmp
 mv manifest.json.tmp manifest.json
 
 for path in $(nix-store -qR "$exec"); do
-  cp --parents -r $path .
+  cp --parents -r "$path" .
 done
 
 chmod -R +w .
