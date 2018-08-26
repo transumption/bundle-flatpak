@@ -26,4 +26,4 @@ chmod -R +w .
 # I've ever done in my life. Hope you enjoy what comes next.
 find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
 
-flatpak-builder build-dir manifest.json --install
+flatpak-builder build manifest.json --install
