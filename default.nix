@@ -1,4 +1,4 @@
-{ closureInfo, lib, runCommand, flatpak, flatpak-builder }: partialManifest:
+{ stdenv, closureInfo, flatpak, flatpak-builder }: partialManifest:
 
 let
   closure = closureInfo { rootPaths = [ manifest.command ]; };
@@ -18,19 +18,30 @@ let
   manifest = lib.recursiveUpdate defaultManifest partialManifest;
 in
 
-runCommand "${manifest.app-id}.flatpak" { HOME = "."; buildInputs = [ flatpak flatpak-builder ]; } ''
-  cat <<EOF > manifest.json
+stdenv.mkDerivation {
+  name = "${manifest.app-id}.flatpak";
+  nativeBuildInputs = [ flatpak flatpak-builder ];
+
+  HOME = ".";
+
+  buildCommand = ''
+    cat <<EOF > manifest.json
 ${builtins.toJSON manifest}
 EOF
 
-  for path in $(< ${closure}/store-paths); do
-    cp --parents -r $path .
-  done
+    for path in $(< ${closure}/store-paths); do
+      cp --parents -r $path .
+    done
 
-  chmod -R +w .
+    chmod -R +w .
 
-  find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
+    find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
 
-  flatpak-builder build manifest.json --user --install
-  flatpak build-bundle .local/share/flatpak/repo $out ${manifest.app-id}
-''
+    flatpak-builder build manifest.json --user --install
+    flatpak build-bundle .local/share/flatpak/repo $out ${manifest.app-id}
+  '';
+
+  meta = with stdenv.lib; {
+    platforms = platforms.linux;
+  };
+}
