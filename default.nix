@@ -15,7 +15,7 @@ let
     }];
   };
 
-  manifest = lib.recursiveUpdate defaultManifest partialManifest;
+  manifest = stdenv.lib.recursiveUpdate defaultManifest partialManifest;
 in
 
 stdenv.mkDerivation {
