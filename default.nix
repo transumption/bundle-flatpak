@@ -62,9 +62,6 @@ EOF
     cp -rs --no-preserve=mode ${runtime} .local/share/flatpak
     export FLATPAK_SYSTEM_DIR="$(pwd)/.local/share/flatpak";
 
-    #flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
-    #flatpak install -y --user flathub org.freedesktop.BasePlatform//1.6 org.freedesktop.BaseSdk//1.6
-
     flatpak-builder --user --install build manifest.json
     flatpak build-bundle .local/share/flatpak/repo $out ${manifest.app-id}
   '';
