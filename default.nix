@@ -19,8 +19,9 @@ let
     name = "flatpak-runtime";
     nativeBuildInputs = [ flatpak ];
 
+    # TODO
     outputHashAlgo = "sha256";
-    outputhash = "1qnzadh1k3hszn94rb7369fsb3f1f6j0xiq777g75fxw06fz0cf0";
+    outputhash = "0000000000000000000000000000000000000000000000000000";
     outputHashMode = "recursive";
 
     HOME = ".";
@@ -29,7 +30,9 @@ let
       flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
       flatpak install -y --user flathub org.freedesktop.BasePlatform//1.6 org.freedesktop.BaseSdk//1.6
 
-      mv .local/share/flatpak/runtime $out
+      rm .local/share/flatpak/.changed
+      rm .local/share/flatpak/repo/.lock
+      mv .local/share/flatpak $out
     '';
   };
 
@@ -55,10 +58,13 @@ EOF
 
     find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
 
-    mkdir -p .local/share/flatpak
-    cp -rs ${runtime} $_/runtime
+    mkdir -p .local/share
+    cp -rs --no-preserve=mode ${runtime} .local/share/flatpak
+    export FLATPAK_SYSTEM_DIR="$(pwd)/.local/share/flatpak";
 
-    flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
+    #flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
+    #flatpak install -y --user flathub org.freedesktop.BasePlatform//1.6 org.freedesktop.BaseSdk//1.6
+
     flatpak-builder --user --install build manifest.json
     flatpak build-bundle .local/share/flatpak/repo $out ${manifest.app-id}
   '';
