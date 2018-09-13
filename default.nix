@@ -59,7 +59,7 @@ EOF
     cp -rs ${runtime} $_/runtime
 
     flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
-    flatpak-builder build manifest.json --user --install
+    flatpak-builder --user --install build manifest.json
     flatpak build-bundle .local/share/flatpak/repo $out ${manifest.app-id}
   '';
 
