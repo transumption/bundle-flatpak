@@ -15,6 +15,24 @@ let
     }];
   };
 
+  runtime = stdenv.mkDerivation {
+    name = "flatpak-runtime";
+    nativeBuildInputs = [ flatpak ];
+
+    outputHashAlgo = "sha256";
+    outputhash = "1qnzadh1k3hszn94rb7369fsb3f1f6j0xiq777g75fxw06fz0cf0";
+    outputHashMode = "recursive";
+
+    HOME = ".";
+
+    buildCommand = ''
+      flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
+      flatpak install -y --user flathub org.freedesktop.BasePlatform//1.6 org.freedesktop.BaseSdk//1.6
+
+      mv .local/share/flatpak/runtime $out
+    '';
+  };
+
   manifest = stdenv.lib.recursiveUpdate defaultManifest partialManifest;
 in
 
@@ -37,6 +55,10 @@ EOF
 
     find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
 
+    mkdir -p .local/share/flatpak
+    cp -rs ${runtime} $_/runtime
+
+    flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
     flatpak-builder build manifest.json --user --install
     flatpak build-bundle .local/share/flatpak/repo $out ${manifest.app-id}
   '';
