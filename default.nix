@@ -1,11 +1,14 @@
-{ stdenv, closureInfo, flatpak, flatpak-builder }: partialManifest:
+{ stdenv, fetchzip, closureInfo, writeTextFile, bubblewrap, flatpak, flatpak-builder, shellcheck }:
+partialManifest:
 
 let
   closure = closureInfo { rootPaths = [ manifest.command ]; };
 
+  runtimeVersion = "1.6";
+
   defaultManifest = {
     runtime = "org.freedesktop.BasePlatform";
-    runtime-version = "1.6";
+    runtime-version = runtimeVersion;
     sdk = "org.freedesktop.BaseSdk";
     modules = [{
       name = "nix-flatpak";
@@ -15,26 +18,53 @@ let
     }];
   };
 
-  runtime = stdenv.mkDerivation {
-    name = "flatpak-runtime";
-    nativeBuildInputs = [ flatpak ];
+  runtime = fetchzip {
+    url = "https://gitlab.com/yegortimoshenko/flatpak-rt/-/jobs/artifacts/${runtimeVersion}/download?job=rt.zip";
+    sha256 = "0q4vxkzlml3g4wg6q169k5ayb15gc39x5m0b9lg97g6k5wdsdgsp";
+    stripRoot = false;
+  };
 
-    # TODO
-    outputHashAlgo = "sha256";
-    outputhash = "0000000000000000000000000000000000000000000000000000";
-    outputHashMode = "recursive";
-
-    HOME = ".";
-
-    buildCommand = ''
-      flatpak remote-add --user flathub https://flathub.org/repo/flathub.flatpakrepo
-      flatpak install -y --user flathub org.freedesktop.BasePlatform//1.6 org.freedesktop.BaseSdk//1.6
-
-      rm .local/share/flatpak/.changed
-      rm .local/share/flatpak/repo/.lock
-      mv .local/share/flatpak $out
+  writeShellScript = source: writeTextFile {
+    name = "script";
+    executable = true;
+    checkPhase = "${shellcheck}/bin/shellcheck $out";
+    text = ''
+      #!${stdenv.shell} -e
+      ${source}
     '';
   };
+
+  withEnv = source: writeShellScript ''
+    ${bubblewrap}/bin/bwrap \
+      --ro-bind /bin /bin \
+      --bind /build /build \
+      --dev /dev \
+      --ro-bind /etc /etc \
+      --ro-bind /nix /nix \
+      --proc /proc \
+      --bind /tmp /tmp \
+      --bind /tmp /var/tmp \
+      --dir /sys/block \
+      --dir /sys/bus \
+      --dir /sys/class \
+      --dir /sys/dev \
+      --dir /sys/devices \
+      --setenv PATH "$PATH" \
+      ${source} "$@"
+  '';
+
+  flatpak-build = writeShellScript ''
+    export HOME=$PWD
+    export FLATPAK_SYSTEM_DIR=.local/share/flatpak
+
+    for f in ${runtime}/base-{platform,sdk}.flatpak; do
+      flatpak install --user -y $f
+    done
+
+    flatpak-builder --disable-rofiles-fuse --sandbox --user build manifest.json
+    flatpak build-export $FLATPAK_SYSTEM_DIR/repo build
+    flatpak build-bundle $FLATPAK_SYSTEM_DIR/repo "$@"
+  '';
 
   manifest = stdenv.lib.recursiveUpdate defaultManifest partialManifest;
 in
@@ -42,8 +72,6 @@ in
 stdenv.mkDerivation {
   name = "${manifest.app-id}.flatpak";
   nativeBuildInputs = [ flatpak flatpak-builder ];
-
-  HOME = ".";
 
   buildCommand = ''
     cat <<EOF > manifest.json
@@ -58,12 +86,7 @@ EOF
 
     find . -type f -exec sed -i s:/nix/store:/app/store:g {} \;
 
-    mkdir -p .local/share
-    cp -rs --no-preserve=mode ${runtime} .local/share/flatpak
-    export FLATPAK_SYSTEM_DIR="$(pwd)/.local/share/flatpak";
-
-    flatpak-builder --user --install build manifest.json
-    flatpak build-bundle .local/share/flatpak/repo $out ${manifest.app-id}
+    ${withEnv flatpak-build} tmp ${manifest.app-id} && mv tmp $out
   '';
 
   meta = with stdenv.lib; {
