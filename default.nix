@@ -35,22 +35,27 @@ let
   };
 
   withEnv = source: writeShellScript ''
-    ${bubblewrap}/bin/bwrap \
-      --ro-bind /bin /bin \
-      --bind /build /build \
-      --dev /dev \
-      --ro-bind /etc /etc \
-      --ro-bind /nix /nix \
-      --proc /proc \
-      --bind /tmp /tmp \
-      --bind /tmp /var/tmp \
-      --dir /sys/block \
-      --dir /sys/bus \
-      --dir /sys/class \
-      --dir /sys/dev \
-      --dir /sys/devices \
-      --setenv PATH "$PATH" \
-      ${source} "$@"
+    bwrap=(
+      ${bubblewrap}/bin/bwrap
+      --ro-bind /bin /bin
+      --dev /dev
+      --ro-bind /etc /etc
+      --ro-bind /nix /nix
+      --proc /proc
+      --bind /tmp /tmp
+      --bind /tmp /var/tmp
+      --dir /sys/block
+      --dir /sys/bus
+      --dir /sys/class
+      --dir /sys/dev
+      --dir /sys/devices
+    )
+
+    if test -d /build; then
+      bwrap+=(--bind /build /build)
+    fi
+
+    "''${bwrap[@]}" ${source} "$@"
   '';
 
   flatpak-build = writeShellScript ''
