@@ -1,4 +1,5 @@
 { stdenv, fetchzip, closureInfo, writeTextFile, bubblewrap, flatpak, flatpak-builder, shellcheck }:
+
 partialManifest:
 
 let
@@ -7,9 +8,9 @@ let
   runtimeVersion = "1.6";
 
   defaultManifest = {
-    runtime = "org.freedesktop.BasePlatform";
+    runtime = "org.freedesktop.Platform";
     runtime-version = runtimeVersion;
-    sdk = "org.freedesktop.BaseSdk";
+    sdk = "org.freedesktop.Sdk";
     modules = [{
       name = "nix-flatpak";
       buildsystem = "simple";
@@ -19,8 +20,10 @@ let
   };
 
   runtime = fetchzip {
-    url = "https://gitlab.com/yegortimoshenko/flatpak-rt/-/jobs/artifacts/${runtimeVersion}/download?job=rt.zip";
-    sha256 = "0q4vxkzlml3g4wg6q169k5ayb15gc39x5m0b9lg97g6k5wdsdgsp";
+    # Note that v2 in this URL is temporary, it has been added only
+    # because 1.6 is already taken by BasePlatform/BaseSdk version.
+    url = "https://gitlab.com/yegortimoshenko/flatpak-runtime/-/jobs/artifacts/${runtimeVersion}v2/download?job=runtime.zip";
+    sha256 = "1ilrlrqnlvnrp7fn3c8knacqj5v70nfmlby0a6kla1xp7ad3wmsn";
     stripRoot = false;
   };
 
@@ -62,7 +65,7 @@ let
     export HOME=$PWD
     export FLATPAK_SYSTEM_DIR=.local/share/flatpak
 
-    for f in ${runtime}/base-{platform,sdk}.flatpak; do
+    for f in ${runtime}/{platform,sdk}.flatpak; do
       flatpak install --user -y $f
     done
 
